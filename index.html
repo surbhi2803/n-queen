@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N-Queens Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+/* ═══════════════════════════════════════════════
+   N-QUEENS VISUALIZER — STYLESHEET
+   Aesthetic: Luxury Dark × Amber Gold × Precision
+═══════════════════════════════════════════════ */
+
+/* ─── TOKENS ─── */
+:root {
+  --font-ui: 'Syne', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* dark theme */
+  --bg:          #0a0c10;
+  --bg-2:        #0e1116;
+  --surface:     rgba(255,255,255,0.04);
+  --surface-2:   rgba(255,255,255,0.07);
+  --surface-3:   rgba(255,255,255,0.10);
+  --border:      rgba(255,255,255,0.07);
+  --border-2:    rgba(255,255,255,0.13);
+  --fg:          #f0ece0;
+  --fg-2:        rgba(240,236,224,0.55);
+  --fg-3:        rgba(240,236,224,0.28);
+  --gold:        #f0a500;
+  --gold-2:      #fbbf24;
+  --gold-glow:   rgba(240,165,0,0.22);
+  --red:         #ef4444;
+  --red-soft:    rgba(239,68,68,0.18);
+  --green:       #22c55e;
+  --green-soft:  rgba(34,197,94,0.15);
+  --blue:        #60a5fa;
+  --blue-soft:   rgba(96,165,250,0.15);
+
+  /* board */
+  --cell-light:  #2a2218;
+  --cell-dark:   #1a1510;
+  --cell-border: rgba(240,165,0,0.08);
+
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-xs:   6px;
+  --blur:        blur(20px);
+  --shadow:      0 8px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05) inset;
+  --shadow-sm:   0 4px 20px rgba(0,0,0,0.4);
+  --shadow-gold: 0 0 30px rgba(240,165,0,0.25);
+}
+
+[data-theme="light"] {
+  --bg:          #f5f0e8;
+  --bg-2:        #ede8de;
+  --surface:     rgba(255,255,255,0.7);
+  --surface-2:   rgba(255,255,255,0.85);
+  --surface-3:   rgba(255,255,255,0.95);
+  --border:      rgba(0,0,0,0.07);
+  --border-2:    rgba(0,0,0,0.13);
+  --fg:          #1c1a14;
+  --fg-2:        rgba(28,26,20,0.55);
+  --fg-3:        rgba(28,26,20,0.3);
+  --gold:        #b87800;
+  --gold-2:      #d4900a;
+  --gold-glow:   rgba(184,120,0,0.15);
+  --red:         #dc2626;
+  --red-soft:    rgba(220,38,38,0.1);
+  --green:       #16a34a;
+  --green-soft:  rgba(22,163,74,0.1);
+  --blue:        #2563eb;
+  --blue-soft:   rgba(37,99,235,0.1);
+  --cell-light:  #f7edd8;
+  --cell-dark:   #e8d9b8;
+  --cell-border: rgba(184,120,0,0.12);
+  --shadow:      0 8px 32px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset;
+  --shadow-sm:   0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background .4s, color .3s;
+}
+button { cursor: pointer; border: none; font-family: inherit; }
+em { font-style: italic; color: var(--gold-2); }
+b  { font-weight: 600; }
+
+/* ─── AMBIENT BG ─── */
+.bg-mesh {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(240,165,0,.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(96,165,250,.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(240,165,0,.03) 0%, transparent 70%);
+}
+#bgCanvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .4;
+}
+
+/* ─── SUCCESS OVERLAY ─── */
+.success-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.75); backdrop-filter: blur(12px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .4s;
+}
+.success-overlay.active { opacity: 1; pointer-events: auto; }
+
+.success-card {
+  background: var(--surface-3);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 380px; width: 90%;
+  box-shadow: var(--shadow-gold), var(--shadow);
+  animation: successPop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes successPop {
+  from { transform: scale(.8); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.success-crown {
+  font-size: 3.5rem; display: block; margin-bottom: .75rem;
+  animation: crownFloat 2s ease-in-out infinite;
+}
+@keyframes crownFloat {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.success-card h2 {
+  font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: .4rem;
+}
+.success-card p { color: var(--fg-2); font-size: .88rem; margin-bottom: 1.2rem; }
+.success-stats {
+  display: flex; gap: 1rem; justify-content: center;
+  margin-bottom: 1.4rem; flex-wrap: wrap;
+}
+.success-stat {
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm); padding: .5rem .9rem; text-align: center;
+}
+.success-stat-val { font-family: var(--font-mono); font-size: 1.2rem; font-weight: 500; color: var(--gold); }
+.success-stat-lbl { font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); }
+.success-actions { display: flex; gap: .7rem; justify-content: center; }
+
+/* ─── APP ─── */
+.app {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+/* ─── HEADER ─── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.1rem 1.8rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,12,16,.8); backdrop-filter: var(--blur);
+  position: sticky; top: 0; z-index: 100;
+}
+[data-theme="light"] .header { background: rgba(245,240,232,.85); }
+.logo { display: flex; align-items: center; gap: .75rem; }
+.logo-crown {
+  font-size: 1.8rem; line-height: 1;
+  filter: drop-shadow(0 0 8px var(--gold));
+  animation: queenGlow 3s ease-in-out infinite;
+}
+@keyframes queenGlow {
+  0%,100% { filter: drop-shadow(0 0 6px var(--gold)); }
+  50%      { filter: drop-shadow(0 0 16px var(--gold-2)); }
+}
+.logo-title {
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--fg) 30%, var(--gold-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1;
+}
+.logo-sub {
+  font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--fg-3); display: block; margin-top: .1rem;
+}
+.theme-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border-2);
+  color: var(--fg-2); font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .22s; backdrop-filter: var(--blur);
+}
+.theme-btn:hover { background: var(--surface-2); color: var(--gold); transform: rotate(20deg); }
+
+/* ─── MAIN LAYOUT ─── */
+.main {
+  flex: 1; display: grid;
+  grid-template-columns: 240px 1fr 260px;
+  gap: 1.2rem;
+  padding: 1.4rem 1.5rem;
+  align-items: start;
+}
+
+/* ─── PANELS ─── */
+.panel { display: flex; flex-direction: column; gap: .85rem; }
+
+/* ─── CARD ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1rem;
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .25s;
+}
+.card:hover { border-color: var(--border-2); }
+.card-label {
+  font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: .75rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ─── N SELECTOR ─── */
+.n-selector {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; margin-bottom: .4rem;
+}
+.n-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  color: var(--fg); font-size: 1.2rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.n-btn:hover { background: var(--gold); color: #000; border-color: var(--gold); transform: scale(1.08); }
+.n-display {
+  display: flex; align-items: baseline; gap: .25rem;
+  text-align: center;
+}
+.n-value {
+  font-size: 2.2rem; font-weight: 800; letter-spacing: -.03em;
+  background: linear-gradient(135deg, var(--fg), var(--gold-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  transition: all .2s;
+}
+.n-unit { font-size: .8rem; color: var(--fg-3); }
+.n-hint { font-size: .72rem; color: var(--fg-3); text-align: center; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .4rem; border-radius: var(--radius-sm);
+  font-family: var(--font-ui); font-weight: 600;
+  letter-spacing: .04em; transition: all .22s;
+  text-transform: uppercase; font-size: .72rem;
+}
+.btn-lg { padding: .65rem .9rem; font-size: .75rem; }
+.btn-sm { padding: .38rem .75rem; font-size: .68rem; border-radius: var(--radius-xs); }
+.btn-icon { font-size: .9rem; }
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  color: #0a0c10; border: none;
+  box-shadow: 0 4px 16px var(--gold-glow);
+}
+.btn-gold:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 24px var(--gold-glow); }
+.btn-gold:active { transform: translateY(0); }
+
+.btn-outline {
+  background: transparent; border: 1px solid var(--border-2); color: var(--fg-2);
+}
+.btn-outline:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
+.btn-outline:disabled { opacity: .35; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent; border: 1px solid var(--border); color: var(--fg-3);
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--fg); border-color: var(--border-2); }
+
+.controls-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+}
+
+/* ─── SPEED SLIDER ─── */
+.speed-wrap {
+  display: flex; align-items: center; gap: .6rem; margin-bottom: .35rem;
+}
+.speed-label { font-size: .65rem; color: var(--fg-3); white-space: nowrap; }
+.slider-wrap { flex: 1; position: relative; }
+.slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px;
+  background: var(--border-2); border-radius: 2px; outline: none;
+  position: relative; z-index: 1; cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--bg);
+  box-shadow: 0 0 8px var(--gold-glow);
+  transition: transform .2s, box-shadow .2s;
+}
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3); box-shadow: 0 0 16px var(--gold-glow);
+}
+.slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--bg);
+}
+.speed-value {
+  font-family: var(--font-mono); font-size: .72rem;
+  color: var(--gold); text-align: center;
+}
+
+/* ─── SOLUTION COUNTER ─── */
+.sol-counter { text-align: center; margin-bottom: .75rem; }
+.sol-num {
+  font-size: 2.4rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1;
+}
+.sol-label { font-size: .65rem; color: var(--fg-3); letter-spacing: .1em; text-transform: uppercase; }
+.sol-nav { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.sol-idx { font-family: var(--font-mono); font-size: .78rem; color: var(--fg-3); }
+.total-hint { font-size: .68rem; color: var(--fg-3); text-align: center; margin-top: .4rem; }
+
+/* ─── BOARD AREA ─── */
+.board-area {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+}
+.board-wrap { position: relative; }
+.board-container {
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 0 60px rgba(240,165,0,.03);
+}
+.board {
+  display: grid;
+  gap: 0;
+  border: 1px solid rgba(240,165,0,.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* ─── CELL ─── */
+.cell {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  cursor: default;
+  transition: background .18s;
+  aspect-ratio: 1;
+}
+.cell.light { background: var(--cell-light); }
+.cell.dark  { background: var(--cell-dark); }
+
+/* States */
+.cell.checking {
+  background: rgba(96,165,250,.2) !important;
+  box-shadow: inset 0 0 0 2px rgba(96,165,250,.5);
+  animation: checkPulse .4s ease;
+}
+@keyframes checkPulse {
+  0%   { background: rgba(96,165,250,.4); }
+  100% { background: rgba(96,165,250,.2); }
+}
+.cell.safe {
+  background: rgba(34,197,94,.15) !important;
+  box-shadow: inset 0 0 0 2px rgba(34,197,94,.35);
+}
+.cell.unsafe {
+  background: rgba(239,68,68,.15) !important;
+  box-shadow: inset 0 0 0 2px rgba(239,68,68,.3);
+  animation: shakeTiny .3s ease;
+}
+@keyframes shakeTiny {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-3px); }
+  75%     { transform: translateX(3px); }
+}
+.cell.attacked {
+  background: rgba(239,68,68,.08) !important;
+}
+.cell.queen-row {
+  background: rgba(240,165,0,.06) !important;
+}
+.cell.queen-col {
+  background: rgba(240,165,0,.06) !important;
+}
+.cell.solution {
+  background: rgba(34,197,94,.12) !important;
+}
+
+/* Queen symbol */
+.queen {
+  font-size: calc(var(--cell-size, 52px) * .58);
+  line-height: 1;
+  position: relative; z-index: 2;
+  animation: queenPlace .35s cubic-bezier(.34,1.56,.64,1) both;
+  user-select: none;
+  filter: drop-shadow(0 2px 8px rgba(240,165,0,.6));
+}
+@keyframes queenPlace {
+  from { transform: scale(0) rotate(-30deg); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.queen.removing {
+  animation: queenRemove .25s ease forwards;
+}
+@keyframes queenRemove {
+  to { transform: scale(0) rotate(30deg); opacity: 0; }
+}
+.queen.solution-queen {
+  filter: drop-shadow(0 2px 12px rgba(34,197,94,.8)) drop-shadow(0 0 4px rgba(34,197,94,.4));
+}
+
+/* ─── LABELS ─── */
+.col-labels, .row-labels {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: .58rem; color: var(--fg-3);
+  letter-spacing: .06em;
+}
+.col-labels {
+  bottom: -18px; left: 8px;
+  display: flex;
+}
+.row-labels {
+  right: -18px; top: 8px;
+  display: flex; flex-direction: column;
+}
+.board-label { display: flex; align-items: center; justify-content: center; }
+
+/* ─── STATUS BAR ─── */
+.status-bar {
+  display: flex; align-items: center; gap: .6rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 50px; padding: .55rem 1.1rem;
+  backdrop-filter: var(--blur);
+  font-size: .78rem; color: var(--fg-2);
+  max-width: 100%;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  transition: background .3s;
+}
+.status-dot.idle    { background: var(--fg-3); }
+.status-dot.running { background: var(--gold); animation: blink .8s ease-in-out infinite; }
+.status-dot.paused  { background: var(--blue); }
+.status-dot.done    { background: var(--green); }
+.status-dot.back    { background: var(--red); animation: blink .5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.status-text { font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ─── STATS ─── */
+.stats-list { display: flex; flex-direction: column; gap: .45rem; }
+.stat-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .38rem .6rem;
+  background: var(--surface-2); border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  transition: border-color .2s;
+}
+.stat-row:hover { border-color: var(--border-2); }
+.stat-name { font-size: .72rem; color: var(--fg-2); }
+.stat-val { font-family: var(--font-mono); font-size: .82rem; font-weight: 500; }
+.stat-val.accent { color: var(--gold); }
+.mono { font-family: var(--font-mono); }
+
+/* ─── TRACE LOG ─── */
+.card-trace { display: flex; flex-direction: column; }
+.clear-trace {
+  font-size: .6rem; color: var(--fg-3); text-transform: uppercase; letter-spacing: .1em;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  transition: color .2s;
+}
+.clear-trace:hover { color: var(--red); }
+.trace-log {
+  max-height: 180px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: .28rem;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  padding-right: .2rem;
+}
+.trace-log::-webkit-scrollbar { width: 3px; }
+.trace-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.trace-entry {
+  font-family: var(--font-mono); font-size: .68rem; line-height: 1.45;
+  padding: .28rem .5rem; border-radius: var(--radius-xs);
+  border-left: 2px solid transparent;
+  animation: traceIn .2s ease both;
+}
+@keyframes traceIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+.trace-entry.place  { border-color: var(--green); color: var(--fg-2); background: var(--green-soft); }
+.trace-entry.back   { border-color: var(--red);   color: var(--fg-2); background: var(--red-soft);  }
+.trace-entry.check  { border-color: var(--blue);  color: var(--fg-3); background: var(--blue-soft); }
+.trace-entry.solve  { border-color: var(--gold);  color: var(--gold); background: var(--gold-glow); font-weight: 500; }
+
+/* ─── INFO SECTION ─── */
+.info-text { font-size: .78rem; color: var(--fg-2); line-height: 1.65; }
+.info-divider { height: 1px; background: var(--border); margin: .75rem 0; }
+.steps-list { display: flex; flex-direction: column; gap: .5rem; }
+.step-item { display: flex; gap: .6rem; align-items: flex-start; font-size: .74rem; color: var(--fg-2); line-height: 1.5; }
+.step-num {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--gold-glow); border: 1px solid rgba(240,165,0,.35);
+  color: var(--gold); font-size: .65rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ─── KNOWN SOLUTIONS TABLE ─── */
+.ref-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: .35rem;
+}
+.ref-item {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); padding: .35rem .4rem; text-align: center;
+  transition: border-color .2s;
+}
+.ref-item:hover { border-color: var(--gold-glow); }
+.ref-n  { font-size: .65rem; color: var(--fg-3); }
+.ref-v  { font-family: var(--font-mono); font-size: .8rem; color: var(--gold); font-weight: 500; }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up { animation: fadeUp .5s ease both; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1100px) {
+  .main { grid-template-columns: 200px 1fr 220px; gap: .9rem; padding: 1rem; }
+}
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; padding: 1rem; }
+  .panel-left  { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .panel-right { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .card-trace, .card-info { grid-column: 1 / -1; }
+  .board-area { order: -1; }
+}
+@media (max-width: 580px) {
+  .header { padding: .9rem 1rem; }
+  .logo-title { font-size: 1.1rem; }
+  .panel-left  { grid-template-columns: 1fr; }
+  .panel-right { grid-template-columns: 1fr; }
+  .controls-grid { grid-template-columns: 1fr 1fr; }
+}
+
+</style>
+</head>
+<body>
+
+  <!-- AMBIENT BACKGROUND -->
+  <div class="bg-mesh"></div>
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- SUCCESS OVERLAY -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-card">
+      <div class="success-crown">♛</div>
+      <h2>Solution Found!</h2>
+      <p id="successMsg">All queens placed safely</p>
+      <div class="success-stats" id="successStats"></div>
+      <div class="success-actions">
+        <button class="btn btn-gold" id="nextSolBtn">Next Solution →</button>
+        <button class="btn btn-ghost" id="dismissBtn">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="app">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-crown">♛</span>
+          <div>
+            <h1 class="logo-title">N-Queens</h1>
+            <span class="logo-sub">Backtracking Visualizer</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="theme-btn" id="themeBtn" title="Toggle theme">
+          <span id="themeIcon">◑</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <main class="main">
+
+      <!-- LEFT PANEL -->
+      <aside class="panel panel-left">
+
+        <!-- N selector -->
+        <div class="card">
+          <div class="card-label">Board Size</div>
+          <div class="n-selector">
+            <button class="n-btn" id="nDec">−</button>
+            <div class="n-display">
+              <span class="n-value" id="nValue">8</span>
+              <span class="n-unit">× 8</span>
+            </div>
+            <button class="n-btn" id="nInc">+</button>
+          </div>
+          <div class="n-hint">N = <span id="nHint">8</span> queens</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+          <div class="card-label">Controls</div>
+          <div class="controls-grid">
+            <button class="btn btn-gold btn-lg" id="startBtn">
+              <span class="btn-icon">▶</span> Start
+            </button>
+            <button class="btn btn-outline btn-lg" id="pauseBtn" disabled>
+              <span class="btn-icon">⏸</span> Pause
+            </button>
+            <button class="btn btn-outline btn-lg" id="stepBtn" disabled>
+              <span class="btn-icon">⏭</span> Step
+            </button>
+            <button class="btn btn-ghost btn-lg" id="resetBtn">
+              <span class="btn-icon">↺</span> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Speed -->
+        <div class="card">
+          <div class="card-label">Animation Speed</div>
+          <div class="speed-wrap">
+            <span class="speed-label">Slow</span>
+            <div class="slider-wrap">
+              <input type="range" id="speedSlider" min="1" max="10" value="5" class="slider" />
+              <div class="slider-track-fill" id="sliderFill"></div>
+            </div>
+            <span class="speed-label">Fast</span>
+          </div>
+          <div class="speed-value" id="speedDisplay">500ms</div>
+        </div>
+
+        <!-- Solution nav -->
+        <div class="card">
+          <div class="card-label">Solutions</div>
+          <div class="sol-counter">
+            <div class="sol-num" id="solFound">0</div>
+            <div class="sol-label">Found so far</div>
+          </div>
+          <div class="sol-nav">
+            <button class="btn btn-sm btn-outline" id="prevSol" disabled>← Prev</button>
+            <span class="sol-idx" id="solIdx">— / —</span>
+            <button class="btn btn-sm btn-outline" id="nextSol" disabled>Next →</button>
+          </div>
+          <div class="total-hint" id="totalHint"></div>
+        </div>
+
+      </aside>
+
+      <!-- CENTER: BOARD -->
+      <div class="board-area">
+        <div class="board-wrap">
+          <div class="board-container">
+            <div class="board" id="board"></div>
+          </div>
+          <!-- Row/col labels rendered by JS -->
+          <div class="col-labels" id="colLabels"></div>
+          <div class="row-labels" id="rowLabels"></div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="status-bar" id="statusBar">
+          <span class="status-dot idle" id="statusDot"></span>
+          <span class="status-text" id="statusText">Ready — select N and press Start</span>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <aside class="panel panel-right">
+
+        <!-- Live stats -->
+        <div class="card">
+          <div class="card-label">Live Stats</div>
+          <div class="stats-list">
+            <div class="stat-row">
+              <span class="stat-name">Current Row</span>
+              <span class="stat-val mono" id="stRow">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">Current Col</span>
+              <span class="stat-val mono" id="stCol">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">Total Steps</span>
+              <span class="stat-val mono" id="stSteps">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">Backtracks</span>
+              <span class="stat-val mono accent" id="stBack">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">Queens Placed</span>
+              <span class="stat-val mono" id="stQueens">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Algorithm trace -->
+        <div class="card card-trace">
+          <div class="card-label">Algorithm Trace
+            <button class="clear-trace" id="clearTrace">Clear</button>
+          </div>
+          <div class="trace-log" id="traceLog"></div>
+        </div>
+
+        <!-- Info -->
+        <div class="card card-info">
+          <div class="card-label">What is N-Queens?</div>
+          <p class="info-text">
+            Place <em>N</em> queens on an <em>N×N</em> chessboard so that no two queens
+            attack each other — not on the same row, column, or diagonal.
+          </p>
+          <div class="info-divider"></div>
+          <div class="card-label" style="margin-top:.8rem">How Backtracking Works</div>
+          <div class="steps-list">
+            <div class="step-item">
+              <span class="step-num">1</span>
+              <span>Place a queen in the first safe column of the current row</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">2</span>
+              <span>Move to the next row and repeat</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">3</span>
+              <span>If no safe column exists, <b>backtrack</b> to previous row</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">4</span>
+              <span>Try the next column in that row and continue</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">5</span>
+              <span>Repeat until all queens are placed safely</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Known solutions count -->
+        <div class="card card-ref">
+          <div class="card-label">Known Solutions</div>
+          <div class="ref-grid" id="refGrid"></div>
+        </div>
+
+      </aside>
+
+    </main>
+
+  </div><!-- /app -->
+
+  <script>
+/* ═══════════════════════════════════════════════════
+   N-QUEENS VISUALIZER — SCRIPT
+   Modules: Config · State · Board · Algorithm · UI
+═══════════════════════════════════════════════════ */
+
+'use strict';
+
+/* ─────────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────────── */
+const CFG = {
+  N_MIN: 4,
+  N_MAX: 14,
+  SPEED_MAP: { 1: 1200, 2: 800, 3: 600, 4: 450, 5: 300, 6: 180, 7: 100, 8: 50, 9: 20, 10: 4 },
+  MAX_TRACE: 120,
+  QUEEN: '♛',
+  KNOWN_SOLUTIONS: {
+    4:2, 5:10, 6:4, 7:40, 8:92, 9:352, 10:724, 11:2680, 12:14200, 13:73712, 14:365596
+  },
+};
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+const State = {
+  N:          8,
+  speed:      5,
+  running:    false,
+  paused:     false,
+  stepMode:   false,
+  stepResolve:null,
+  queens:     [],      // queens[row] = col, -1 if none
+  steps:      0,
+  backtracks: 0,
+  solutions:  [],      // array of queen arrays
+  solIdx:     0,
+  theme:      'dark',
+  abort:      false,
+};
+
+/* ─────────────────────────────────────────────
+   DOM REFS
+───────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const D = {
+  board:         $('board'),
+  nValue:        $('nValue'),
+  nHint:         $('nHint'),
+  nDec:          $('nDec'),
+  nInc:          $('nInc'),
+  startBtn:      $('startBtn'),
+  pauseBtn:      $('pauseBtn'),
+  stepBtn:       $('stepBtn'),
+  resetBtn:      $('resetBtn'),
+  speedSlider:   $('speedSlider'),
+  sliderFill:    $('sliderFill'),
+  speedDisplay:  $('speedDisplay'),
+  statusDot:     $('statusDot'),
+  statusText:    $('statusText'),
+  stRow:         $('stRow'),
+  stCol:         $('stCol'),
+  stSteps:       $('stSteps'),
+  stBack:        $('stBack'),
+  stQueens:      $('stQueens'),
+  traceLog:      $('traceLog'),
+  clearTrace:    $('clearTrace'),
+  solFound:      $('solFound'),
+  solIdx:        $('solIdx'),
+  prevSol:       $('prevSol'),
+  nextSol:       $('nextSol'),
+  totalHint:     $('totalHint'),
+  refGrid:       $('refGrid'),
+  themeBtn:      $('themeBtn'),
+  themeIcon:     $('themeIcon'),
+  successOverlay:$('successOverlay'),
+  successMsg:    $('successMsg'),
+  successStats:  $('successStats'),
+  nextSolBtn:    $('nextSolBtn'),
+  dismissBtn:    $('dismissBtn'),
+  colLabels:     $('colLabels'),
+  rowLabels:     $('rowLabels'),
+  bgCanvas:      $('bgCanvas'),
+};
+
+/* ─────────────────────────────────────────────
+   BOARD MODULE
+───────────────────────────────────────────── */
+const Board = {
+  cells: [],   // cells[row][col] = div
+
+  build() {
+    const n = State.N;
+    D.board.innerHTML = '';
+    D.board.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    this.cells = [];
+
+    // Compute cell size based on available space
+    const maxPx = Math.min(window.innerWidth * .45, 560);
+    const cellPx = Math.max(32, Math.floor(maxPx / n));
+    D.board.style.setProperty('--cell-size', cellPx + 'px');
+    document.documentElement.style.setProperty('--cell-size', cellPx + 'px');
+
+    for (let r = 0; r < n; r++) {
+      this.cells[r] = [];
+      for (let c = 0; c < n; c++) {
+        const cell = document.createElement('div');
+        cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+        cell.style.width  = cellPx + 'px';
+        cell.style.height = cellPx + 'px';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        D.board.appendChild(cell);
+        this.cells[r][c] = cell;
+      }
+    }
+    this.buildLabels();
+  },
+
+  buildLabels() {
+    const n = State.N;
+    const maxPx = Math.min(window.innerWidth * .45, 560);
+    const cellPx = Math.max(32, Math.floor(maxPx / n));
+
+    D.colLabels.innerHTML = '';
+    D.rowLabels.innerHTML = '';
+    for (let c = 0; c < n; c++) {
+      const el = document.createElement('div');
+      el.className = 'board-label';
+      el.style.width = cellPx + 'px';
+      el.textContent = String.fromCharCode(65 + c);
+      D.colLabels.appendChild(el);
+    }
+    for (let r = 0; r < n; r++) {
+      const el = document.createElement('div');
+      el.className = 'board-label';
+      el.style.height = cellPx + 'px';
+      el.textContent = n - r;
+      D.rowLabels.appendChild(el);
+    }
+  },
+
+  clear() {
+    const n = State.N;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const cell = this.cells[r][c];
+        cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+        cell.innerHTML = '';
+      }
+    }
+  },
+
+  clearHighlights() {
+    const n = State.N;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const cell = this.cells[r][c];
+        cell.classList.remove('checking','safe','unsafe','attacked','queen-row','queen-col','solution');
+      }
+    }
+  },
+
+  placeQueen(row, col) {
+    const cell = this.cells[row][col];
+    cell.innerHTML = '';
+    const q = document.createElement('span');
+    q.className = 'queen';
+    q.textContent = CFG.QUEEN;
+    cell.appendChild(q);
+    State.queens[row] = col;
+  },
+
+  removeQueen(row) {
+    const col = State.queens[row];
+    if (col === undefined || col === -1) return;
+    const cell = this.cells[row][col];
+    const q = cell.querySelector('.queen');
+    if (q) {
+      q.classList.add('removing');
+      setTimeout(() => { if (cell.contains(q)) cell.removeChild(q); }, 240);
+    }
+    State.queens[row] = -1;
+  },
+
+  highlightCell(row, col, type) {
+    if (row < 0 || col < 0 || row >= State.N || col >= State.N) return;
+    const cell = this.cells[row][col];
+    cell.classList.remove('checking','safe','unsafe','attacked','queen-row','queen-col');
+    if (type) cell.classList.add(type);
+  },
+
+  highlightRow(row) {
+    for (let c = 0; c < State.N; c++) {
+      const cell = this.cells[row][c];
+      if (!cell.querySelector('.queen')) cell.classList.add('queen-row');
+    }
+  },
+
+  highlightAttacks(row, col) {
+    const n = State.N;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const cell = this.cells[r][c];
+        if (cell.querySelector('.queen')) continue;
+        // Same col
+        if (c === col) { cell.classList.add('attacked'); continue; }
+        // Diagonals
+        if (Math.abs(r - row) === Math.abs(c - col)) cell.classList.add('attacked');
+      }
+    }
+  },
+
+  showSolution(queens) {
+    this.clear();
+    const n = State.N;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        this.cells[r][c].classList.add('solution');
+      }
+      const q = document.createElement('span');
+      q.className = 'queen solution-queen';
+      q.textContent = CFG.QUEEN;
+      this.cells[r][queens[r]].appendChild(q);
+    }
+  },
+};
+
+/* ─────────────────────────────────────────────
+   SLEEP / PAUSE HELPERS
+───────────────────────────────────────────── */
+function sleep(ms) {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, ms);
+    // Store so we can clear on abort
+    State._sleepTimer = timer;
+  });
+}
+
+async function tick(fast = false) {
+  if (State.abort) throw new Error('ABORT');
+  while (State.paused && !State.stepMode && !State.abort) {
+    await sleep(50);
+  }
+  if (State.abort) throw new Error('ABORT');
+  if (State.stepMode) {
+    State.paused = true;
+    State.stepMode = false;
+    await new Promise(resolve => { State.stepResolve = resolve; });
+    if (State.abort) throw new Error('ABORT');
+  }
+  if (!fast) await sleep(CFG.SPEED_MAP[State.speed] || 300);
+}
+
+/* ─────────────────────────────────────────────
+   ALGORITHM MODULE
+───────────────────────────────────────────── */
+const Algorithm = {
+
+  isSafe(queens, row, col) {
+    for (let r = 0; r < row; r++) {
+      if (queens[r] === col) return false;
+      if (Math.abs(queens[r] - col) === Math.abs(r - row)) return false;
+    }
+    return true;
+  },
+
+  async solve() {
+    const n = State.N;
+    State.queens = new Array(n).fill(-1);
+    State.steps = 0;
+    State.backtracks = 0;
+    State.solutions = [];
+    State.solIdx = 0;
+    State.abort = false;
+
+    UI.updateStats();
+    UI.setStatus('running', 'Solving…');
+
+    try {
+      await this._backtrack(0);
+    } catch (e) {
+      if (e.message !== 'ABORT') throw e;
+    }
+
+    if (!State.abort) {
+      if (State.solutions.length > 0) {
+        UI.setStatus('done', `✓ Found ${State.solutions.length} solution${State.solutions.length > 1 ? 's' : ''}`);
+        Board.showSolution(State.solutions[0]);
+        State.solIdx = 0;
+        UI.updateSolNav();
+        UI.showSuccess();
+      } else {
+        UI.setStatus('done', 'No solution exists for N=' + n);
+      }
+    }
+
+    State.running = false;
+    UI.setControlState('done');
+  },
+
+  async _backtrack(row) {
+    const n = State.N;
+    if (row === n) {
+      // Found a solution
+      State.solutions.push([...State.queens]);
+      UI.updateSolCounter();
+      UI.addTrace('solve', `♛ Solution #${State.solutions.length} found!`);
+
+      // Flash board
+      Board.clearHighlights();
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          Board.cells[r][c].classList.add('solution');
+        }
+      }
+      await tick(true);
+      await sleep(CFG.SPEED_MAP[State.speed] * 2);
+      if (State.abort) throw new Error('ABORT');
+
+      // Remove solution highlight before continuing
+      Board.clearHighlights();
+      return;
+    }
+
+    Board.highlightRow(row);
+    UI.updateStat('stRow', row + 1);
+
+    for (let col = 0; col < n; col++) {
+      if (State.abort) throw new Error('ABORT');
+      State.steps++;
+      UI.updateStat('stSteps', State.steps);
+      UI.updateStat('stCol', col + 1);
+
+      // Highlight checking
+      Board.clearHighlights();
+      Board.highlightRow(row);
+      Board.highlightCell(row, col, 'checking');
+      UI.setStatus('running', `Checking row ${row+1}, col ${col+1}`);
+
+      await tick();
+
+      if (this.isSafe(State.queens, row, col)) {
+        // Safe — place queen
+        Board.highlightCell(row, col, 'safe');
+        Board.highlightAttacks(row, col);
+        UI.addTrace('place', `Place queen @ row ${row+1}, col ${col+1}`);
+        Board.placeQueen(row, col);
+        UI.updateStat('stQueens', row + 1);
+        await tick();
+
+        await this._backtrack(row + 1);
+        if (State.abort) throw new Error('ABORT');
+
+        // Backtrack
+        State.backtracks++;
+        UI.updateStat('stBack', State.backtracks);
+        UI.addTrace('back', `Backtrack from row ${row+1}, col ${col+1}`);
+        UI.setStatus('back', `Backtracking from row ${row+1}…`);
+
+        Board.clearHighlights();
+        Board.highlightRow(row);
+        Board.highlightCell(row, col, 'unsafe');
+        Board.removeQueen(row);
+        UI.updateStat('stQueens', row);
+        await tick();
+
+      } else {
+        // Unsafe
+        Board.highlightCell(row, col, 'unsafe');
+        UI.addTrace('check', `Unsafe @ row ${row+1}, col ${col+1}`);
+        await tick();
+      }
+    }
+
+    Board.clearHighlights();
+    UI.updateStat('stRow', row + 1);
+    UI.updateStat('stCol', '—');
+  },
+};
+
+/* ─────────────────────────────────────────────
+   UI MODULE
+───────────────────────────────────────────── */
+const UI = {
+
+  setStatus(type, text) {
+    D.statusDot.className = `status-dot ${type}`;
+    D.statusText.textContent = text;
+  },
+
+  setControlState(state) {
+    // states: 'idle' | 'running' | 'paused' | 'done'
+    const isRunning = state === 'running' || state === 'paused';
+    D.startBtn.disabled  = isRunning;
+    D.pauseBtn.disabled  = state === 'idle' || state === 'done';
+    D.stepBtn.disabled   = state === 'idle' || state === 'done';
+    D.nDec.disabled      = isRunning;
+    D.nInc.disabled      = isRunning;
+    D.speedSlider.disabled = false;
+    if (state === 'paused') {
+      D.pauseBtn.innerHTML = '<span class="btn-icon">▶</span> Resume';
+    } else {
+      D.pauseBtn.innerHTML = '<span class="btn-icon">⏸</span> Pause';
+    }
+  },
+
+  updateStats() {
+    D.stRow.textContent    = '—';
+    D.stCol.textContent    = '—';
+    D.stSteps.textContent  = State.steps;
+    D.stBack.textContent   = State.backtracks;
+    D.stQueens.textContent = 0;
+    D.solFound.textContent = State.solutions.length;
+    D.solIdx.textContent   = '— / —';
+  },
+
+  updateStat(id, val) {
+    D[id].textContent = val;
+  },
+
+  updateSolCounter() {
+    D.solFound.textContent = State.solutions.length;
+    D.solIdx.textContent = `${State.solIdx + 1} / ${State.solutions.length}`;
+    D.prevSol.disabled = State.solIdx <= 0;
+    D.nextSol.disabled = State.solIdx >= State.solutions.length - 1;
+  },
+
+  updateSolNav() {
+    D.solIdx.textContent = `${State.solIdx + 1} / ${State.solutions.length}`;
+    D.prevSol.disabled = State.solIdx <= 0;
+    D.nextSol.disabled = State.solIdx >= State.solutions.length - 1;
+    const known = CFG.KNOWN_SOLUTIONS[State.N];
+    if (known) {
+      D.totalHint.textContent = `Total known: ${known.toLocaleString()}`;
+    }
+  },
+
+  addTrace(type, msg) {
+    const el = document.createElement('div');
+    el.className = `trace-entry ${type}`;
+    el.textContent = msg;
+    D.traceLog.insertBefore(el, D.traceLog.firstChild);
+    // Limit entries
+    while (D.traceLog.children.length > CFG.MAX_TRACE) {
+      D.traceLog.removeChild(D.traceLog.lastChild);
+    }
+  },
+
+  showSuccess() {
+    const sol = State.solutions.length;
+    D.successMsg.textContent = `Solution #${sol > 1 ? '1 of ' + sol : '1'} displayed on board`;
+    D.successStats.innerHTML = `
+      <div class="success-stat"><div class="success-stat-val">${State.steps}</div><div class="success-stat-lbl">Steps</div></div>
+      <div class="success-stat"><div class="success-stat-val">${State.backtracks}</div><div class="success-stat-lbl">Backtracks</div></div>
+      <div class="success-stat"><div class="success-stat-val">${sol}</div><div class="success-stat-lbl">Solutions</div></div>
+    `;
+    D.successOverlay.classList.add('active');
+  },
+
+  hideSuccess() {
+    D.successOverlay.classList.remove('active');
+  },
+
+  updateNDisplay() {
+    D.nValue.textContent = State.N;
+    D.nHint.textContent  = State.N;
+    D.nDec.disabled      = State.N <= CFG.N_MIN;
+    D.nInc.disabled      = State.N >= CFG.N_MAX;
+  },
+
+  updateSpeedDisplay() {
+    const ms = CFG.SPEED_MAP[State.speed];
+    D.speedDisplay.textContent = ms >= 1000 ? (ms/1000).toFixed(1)+'s' : ms+'ms';
+    // Fill bar
+    const pct = ((State.speed - 1) / 9) * 100;
+    D.sliderFill.style.width = pct + '%';
+  },
+
+  buildRefGrid() {
+    D.refGrid.innerHTML = '';
+    Object.entries(CFG.KNOWN_SOLUTIONS).forEach(([n, v]) => {
+      const el = document.createElement('div');
+      el.className = 'ref-item';
+      el.innerHTML = `<div class="ref-n">N=${n}</div><div class="ref-v">${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}</div>`;
+      D.refGrid.appendChild(el);
+    });
+  },
+};
+
+/* ─────────────────────────────────────────────
+   AMBIENT CANVAS (subtle particles)
+───────────────────────────────────────────── */
+const AmbientCanvas = (() => {
+  const canvas = D.bgCanvas;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size  = .4 + Math.random() * 1.2;
+      this.alpha = .04 + Math.random() * .1;
+      this.vx    = (Math.random() - .5) * .15;
+      this.vy    = (Math.random() - .5) * .12;
+      this.life  = Math.random();
+      this.decay = .002 + Math.random() * .003;
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      this.life -= this.decay;
+      if (this.life <= 0) Object.assign(this, new Particle());
+    }
+    draw() {
+      ctx.save();
+      ctx.globalAlpha = this.alpha * this.life;
+      ctx.fillStyle = '#f0a500';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  }
+
+  function init() {
+    resize();
+    particles = Array.from({ length: 80 }, () => new Particle());
+    loop();
+    window.addEventListener('resize', resize);
+  }
+
+  return { init };
+})();
+
+/* ─────────────────────────────────────────────
+   EVENT LISTENERS
+───────────────────────────────────────────── */
+
+// N controls
+D.nDec.addEventListener('click', () => {
+  if (State.N > CFG.N_MIN) {
+    State.N--;
+    UI.updateNDisplay();
+    resetAll();
+  }
+});
+D.nInc.addEventListener('click', () => {
+  if (State.N < CFG.N_MAX) {
+    State.N++;
+    UI.updateNDisplay();
+    resetAll();
+  }
+});
+
+// Start
+D.startBtn.addEventListener('click', async () => {
+  if (State.running) return;
+  State.running = true;
+  State.paused  = false;
+  State.abort   = false;
+  D.traceLog.innerHTML = '';
+  Board.build();
+  UI.setControlState('running');
+  UI.setStatus('running', 'Starting…');
+  UI.updateStats();
+  await Algorithm.solve();
+});
+
+// Pause / Resume
+D.pauseBtn.addEventListener('click', () => {
+  if (!State.running) return;
+  State.paused = !State.paused;
+  UI.setControlState(State.paused ? 'paused' : 'running');
+  UI.setStatus(State.paused ? 'paused' : 'running', State.paused ? 'Paused' : 'Resuming…');
+  if (!State.paused && State.stepResolve) {
+    // If was in step-wait, keep paused until step pressed
+  }
+});
+
+// Step
+D.stepBtn.addEventListener('click', () => {
+  if (!State.running) return;
+  if (State.paused) {
+    State.stepMode = true;
+    if (State.stepResolve) {
+      const r = State.stepResolve;
+      State.stepResolve = null;
+      r();
+    }
+  }
+});
+
+// Reset
+D.resetBtn.addEventListener('click', resetAll);
+
+// Speed
+D.speedSlider.addEventListener('input', () => {
+  State.speed = +D.speedSlider.value;
+  UI.updateSpeedDisplay();
+});
+
+// Solution navigation
+D.prevSol.addEventListener('click', () => {
+  if (State.solIdx > 0) {
+    State.solIdx--;
+    Board.showSolution(State.solutions[State.solIdx]);
+    UI.updateSolNav();
+  }
+});
+D.nextSol.addEventListener('click', () => {
+  if (State.solIdx < State.solutions.length - 1) {
+    State.solIdx++;
+    Board.showSolution(State.solutions[State.solIdx]);
+    UI.updateSolNav();
+  }
+});
+
+// Success overlay actions
+D.nextSolBtn.addEventListener('click', () => {
+  UI.hideSuccess();
+  if (State.solutions.length > 1) {
+    State.solIdx = Math.min(State.solIdx + 1, State.solutions.length - 1);
+    Board.showSolution(State.solutions[State.solIdx]);
+    UI.updateSolNav();
+  }
+});
+D.dismissBtn.addEventListener('click', () => UI.hideSuccess());
+D.successOverlay.addEventListener('click', e => {
+  if (e.target === D.successOverlay) UI.hideSuccess();
+});
+
+// Trace clear
+D.clearTrace.addEventListener('click', () => { D.traceLog.innerHTML = ''; });
+
+// Theme toggle
+D.themeBtn.addEventListener('click', () => {
+  State.theme = State.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = State.theme;
+  D.themeIcon.textContent = State.theme === 'dark' ? '◑' : '◐';
+  try { localStorage.setItem('nq_theme', State.theme); } catch {}
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (!State.running) D.startBtn.click();
+    else D.pauseBtn.click();
+  }
+  if (e.code === 'KeyR') D.resetBtn.click();
+  if (e.code === 'KeyS' && State.running && State.paused) D.stepBtn.click();
+  if (e.code === 'ArrowLeft') D.prevSol.click();
+  if (e.code === 'ArrowRight') D.nextSol.click();
+});
+
+/* ─────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────── */
+function resetAll() {
+  State.abort     = true;
+  State.running   = false;
+  State.paused    = false;
+  State.stepMode  = false;
+  if (State.stepResolve) { State.stepResolve(); State.stepResolve = null; }
+  if (State._sleepTimer)  clearTimeout(State._sleepTimer);
+
+  State.queens     = [];
+  State.steps      = 0;
+  State.backtracks = 0;
+  State.solutions  = [];
+  State.solIdx     = 0;
+
+  Board.build();
+  UI.updateStats();
+  UI.setControlState('idle');
+  UI.setStatus('idle', 'Ready — select N and press Start');
+  UI.hideSuccess();
+  D.traceLog.innerHTML = '';
+  D.totalHint.textContent = '';
+  D.prevSol.disabled = true;
+  D.nextSol.disabled = true;
+  D.solIdx.textContent = '— / —';
+
+  setTimeout(() => { State.abort = false; }, 100);
+}
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+(function init() {
+  // Restore theme
+  try {
+    const t = localStorage.getItem('nq_theme');
+    if (t) {
+      State.theme = t;
+      document.documentElement.dataset.theme = t;
+      D.themeIcon.textContent = t === 'dark' ? '◑' : '◐';
+    }
+  } catch {}
+
+  // Build initial board
+  Board.build();
+
+  // UI init
+  UI.updateNDisplay();
+  UI.updateSpeedDisplay();
+  UI.setControlState('idle');
+  UI.setStatus('idle', 'Ready — select N and press Start');
+  UI.buildRefGrid();
+
+  // Ambient background
+  AmbientCanvas.init();
+
+  // Responsive rebuild
+  window.addEventListener('resize', () => {
+    if (!State.running) Board.build();
+  });
+
+  // Show keyboard hint
+  setTimeout(() => {
+    UI.setStatus('idle', 'Press Space to start · R to reset · S to step');
+    setTimeout(() => {
+      UI.setStatus('idle', 'Ready — select N and press Start');
+    }, 3000);
+  }, 1000);
+})();
+
+</script>
+</body>
+</html>
